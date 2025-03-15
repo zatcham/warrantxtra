@@ -1,0 +1,16 @@
+[
+{
+  "modid": "warrantxtra",
+  "name": "Zach's Warrant Xtras",
+  "description": "Extra bits for the Warrant Pack",
+  "version": "1.0",
+  "mcversion": "1.12.2",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["zatcham"],
+  "credits": "Zach M",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
