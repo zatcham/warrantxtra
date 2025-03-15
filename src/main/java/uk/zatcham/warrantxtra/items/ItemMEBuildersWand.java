@@ -95,6 +95,48 @@ public class ItemMEBuildersWand extends Item {
         return new ActionResult<>(EnumActionResult.PASS, stack);
     }
 
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void onRenderTick(net.minecraftforge.fml.common.gameevent.TickEvent.RenderTickEvent event) {
+        if (event.phase != net.minecraftforge.fml.common.gameevent.TickEvent.Phase.END) return;
+
+        EntityPlayer player = Minecraft.getMinecraft().player;
+        if (player == null) return;
+
+        // Get the player's held items
+        ItemStack mainHand = player.getHeldItemMainhand();
+        ItemStack offHand = player.getHeldItemOffhand();
+
+        // Check if either hand has our wand
+        ItemMEBuildersWand wand = null;
+        if (!mainHand.isEmpty() && mainHand.getItem() instanceof ItemMEBuildersWand) {
+            wand = (ItemMEBuildersWand) mainHand.getItem();
+        } else if (!offHand.isEmpty() && offHand.getItem() instanceof ItemMEBuildersWand) {
+            wand = (ItemMEBuildersWand) offHand.getItem();
+        } else {
+            return;
+        }
+
+        // Get the block the player is looking at
+        RayTraceResult rayTrace = Minecraft.getMinecraft().objectMouseOver;
+        if (rayTrace == null || rayTrace.typeOfHit != RayTraceResult.Type.BLOCK) {
+            return;
+        }
+
+        // Debug log to verify the event is firing
+        WarrantXtra.logger.info("Builder's Wand render tick: looking at " + rayTrace.getBlockPos());
+
+        // Update the render handler
+        if (renderHandler != null) {
+            renderHandler.updateRenderData(
+                    player.world,
+                    rayTrace.getBlockPos(),
+                    rayTrace.sideHit,
+                    wand
+            );
+        }
+    }
+
     @Override
     public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos pos, EnumHand hand,
                                       EnumFacing facing, float hitX, float hitY, float hitZ) {
@@ -158,7 +200,7 @@ public class ItemMEBuildersWand extends Item {
                 AEApi.instance().storage().getStorageChannel(IItemStorageChannel.class));
 
         // Calculate area to fill
-        List<BlockPos> positions = calculateBuildArea(world, pos, facing, MAX_BLOCKS);
+        List<BlockPos> positions = calculateBuildArea(world, pos, facing);
 
         // Check available blocks first
         Item blockItem = Item.getItemFromBlock(sourceBlock);
@@ -240,7 +282,7 @@ public class ItemMEBuildersWand extends Item {
         }
     }
 
-    private List<BlockPos> calculateBuildArea(World world, BlockPos start, EnumFacing facing, int maxBlocks) {
+    private List<BlockPos> calculateBuildArea(World world, BlockPos start, EnumFacing facing) {
         List<BlockPos> positions = new ArrayList<>();
         BlockPos originPos = start.offset(facing);
 
@@ -264,7 +306,7 @@ public class ItemMEBuildersWand extends Item {
         // Add the positions in a grid pattern
         for (int a = -range; a <= range; a++) {
             for (int b = -range; b <= range; b++) {
-                if (positions.size() >= maxBlocks) break;
+                if (positions.size() >= ItemMEBuildersWand.MAX_BLOCKS) break;
 
                 BlockPos pos;
                 if (axisA == EnumFacing.Axis.X && axisB == EnumFacing.Axis.Z) {
@@ -577,10 +619,8 @@ public class ItemMEBuildersWand extends Item {
         // Handle client side differently
         if (world.isRemote) {
             if (hasConfirmedServerConnection) {
-                WarrantXtra.logger.info("Using cached server connection status on client");
                 return DummyClientGrid.instance;
             }
-            WarrantXtra.logger.info("No confirmed server connection on client");
             return null;
         }
 
@@ -671,8 +711,6 @@ public class ItemMEBuildersWand extends Item {
                 }
             }
         }
-
-        WarrantXtra.logger.warn("No accessible ME network components found within range");
         return null;
     }
 
@@ -974,43 +1012,36 @@ public class ItemMEBuildersWand extends Item {
 
         @SubscribeEvent
         public void onRenderWorldLast(RenderWorldLastEvent event) {
+            if (world == null || targetPos == null || targetFace == null || wandItem == null) {
+                WarrantXtra.logger.info("Rendering skipped - missing data");
+                return; // Skip if any required data is missing
+            }
+
             EntityPlayer player = Minecraft.getMinecraft().player;
-            if (player == null || world == null || targetPos == null || targetFace == null ||
-                    player.getHeldItemMainhand().getItem() != wandItem) {
+            if (player == null) return;
+
+            // Calculate the positions that would be filled
+//            List<BlockPos> positions = wandItem.calculateBuildArea(world, targetPos, targetFace, MAX_BLOCKS);
+            List<BlockPos> positions = wandItem.calculateBuildArea(world, targetPos, targetFace);
+            if (positions.isEmpty()) {
+                WarrantXtra.logger.info("No positions to render");
                 return;
             }
 
-            // Check if the player is holding the wand
+            // Check if player is holding the wand
             ItemStack heldStack = player.getHeldItemMainhand();
-            if (heldStack.isEmpty() || heldStack.getItem() != wandItem) {
+            if (heldStack.getItem() != wandItem) {
                 heldStack = player.getHeldItemOffhand();
-                if (heldStack.isEmpty() || heldStack.getItem() != wandItem) {
+                if (heldStack.getItem() != wandItem) {
                     return;
                 }
             }
 
-            // Get the ray trace result to find what block the player is looking at
-            RayTraceResult rayTraceResult = Minecraft.getMinecraft().objectMouseOver;
-            if (rayTraceResult == null || rayTraceResult.typeOfHit != RayTraceResult.Type.BLOCK) {
-                return;
-            }
-
-            // Update positions based on the block the player is looking at
-            BlockPos lookingAt = rayTraceResult.getBlockPos();
-            EnumFacing face = rayTraceResult.sideHit;
-
-            // Calculate the positions that would be filled
-            List<BlockPos> positions = wandItem.calculateBuildArea(world, targetPos, targetFace, MAX_BLOCKS);
-//            List<BlockPos> positions = wandItem.calculateBuildArea(world, lookingAt, face, MAX_BLOCKS);
-            if (positions.isEmpty()) {
-                return;
-            }
-
             boolean isLinked = wandItem.isLinked(heldStack);
-
-            // Check block availability in ME system (client-side approximation)
-            Block sourceBlock = world.getBlockState(targetPos).getBlock();
-            checkBlockAvailability(positions, sourceBlock);
+            if (!isLinked) {
+                WarrantXtra.logger.info("Wand is not linked - skipping render");
+                return; // Skip if the wand is not linked
+            }
 
             // Render
             renderOutlines(player, event.getPartialTicks(), positions, isLinked);
@@ -1069,10 +1100,10 @@ public class ItemMEBuildersWand extends Item {
             AxisAlignedBB box = new AxisAlignedBB(pos).grow(0.002);
 
             // Draw transparent filled box
-            RenderGlobal.renderFilledBox(box, red, green, blue, alpha * 0.3F);
+//            RenderGlobal.renderFilledBox(box, red, green, blue, alpha * 0.3F);
 
             // Draw outline
-            RenderGlobal.drawSelectionBoundingBox(box, red, green, blue, alpha * 0.8F);
+            RenderGlobal.drawSelectionBoundingBox(box, red, green, blue, 0.5F);
         }
 
         // Method to update availability cache with real data from server
@@ -1084,6 +1115,9 @@ public class ItemMEBuildersWand extends Item {
 
     @SideOnly(Side.CLIENT)
     public static void initClient() {
+        WarrantXtra.logger.info("Initializing Builder's Wand client-side");
         renderHandler = new RenderHandler();
+//        MinecraftForge.EVENT_BUS.register(renderHandler);
+        MinecraftForge.EVENT_BUS.register(ItemMEBuildersWand.class);
     }
 }

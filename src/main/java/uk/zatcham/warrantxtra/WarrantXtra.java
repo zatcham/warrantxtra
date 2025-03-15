@@ -49,11 +49,13 @@ public class WarrantXtra {
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        logger.info("WarrantXtra initialized");
+        WarrantXtra.logger.info("Kicking off WarrantXtra initialisation");
         if (event.getSide().isClient()) {
+            WarrantXtra.logger.info("Initialising client-side components");
             ItemMEBuildersWand.initClient();
         }
         Network.init();
+        logger.info("WarrantXtra initialised!");
     }
 
     @SubscribeEvent
