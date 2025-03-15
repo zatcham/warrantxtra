@@ -1,9 +1,7 @@
 package uk.zatcham.warrantxtra.network;
 
-import appeng.core.sync.AppEngPacket;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 
@@ -16,11 +14,11 @@ public class Network {
         INSTANCE.registerMessage(BuilderWandPacket.Handler.class, BuilderWandPacket.class, id++, Side.SERVER);
     }
 
-    public static void sendToServer(AppEngPacket packet) {
-        INSTANCE.sendToServer((IMessage) packet);
+    public static void sendToServer(BuilderWandPacket packet) {
+        INSTANCE.sendToServer(packet);
     }
 
-    public static void sendTo(AppEngPacket packet, EntityPlayerMP player) {
-        INSTANCE.sendTo((IMessage) packet, player);
+    public static void sendTo(BuilderWandPacket packet, EntityPlayerMP player) {
+        INSTANCE.sendTo(packet, player);
     }
 }

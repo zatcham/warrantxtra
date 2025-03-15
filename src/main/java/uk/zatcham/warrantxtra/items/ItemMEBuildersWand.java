@@ -1,4 +1,4 @@
-package uk.zatcham.warrantxtra;
+package uk.zatcham.warrantxtra.items;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -15,7 +15,6 @@ import appeng.api.storage.data.IAEItemStack;
 import appeng.api.storage.IMEMonitor;
 import appeng.api.util.AEPartLocation;
 import appeng.api.util.IReadOnlyCollection;
-import appeng.core.sync.network.NetworkHandler;
 import appeng.me.helpers.PlayerSource;
 import appeng.util.item.AEItemStack;
 import net.minecraft.block.Block;
@@ -42,6 +41,9 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import uk.zatcham.warrantxtra.WarrantXtra;
+import uk.zatcham.warrantxtra.network.BuilderWandPacket;
+import uk.zatcham.warrantxtra.network.Network;
 import uk.zatcham.warrantxtra.network.NetworkConnectionPacket;
 
 import javax.annotation.Nonnull;
@@ -597,14 +599,17 @@ public class ItemMEBuildersWand extends Item {
             hasConfirmedServerConnection = true;
             if (player instanceof EntityPlayerMP) {
                 NetworkConnectionPacket packet = new NetworkConnectionPacket(true);
-                NetworkHandler.instance.sendTo(packet, (EntityPlayerMP)player);
+                BuilderWandPacket builderWandPacket = new BuilderWandPacket(player.getPosition(), new HashMap<>());
+                Network.sendTo(builderWandPacket, (EntityPlayerMP)player);
             }
         } else {
             // Network not found - clear status
             hasConfirmedServerConnection = false;
             if (player instanceof EntityPlayerMP) {
                 NetworkConnectionPacket packet = new NetworkConnectionPacket(false);
-                NetworkHandler.instance.sendTo(packet, (EntityPlayerMP)player);
+                BuilderWandPacket builderWandPacket = new BuilderWandPacket(player.getPosition(), new HashMap<>());
+
+                Network.sendTo(builderWandPacket, (EntityPlayerMP)player);
             }
         }
 
@@ -995,8 +1000,8 @@ public class ItemMEBuildersWand extends Item {
             EnumFacing face = rayTraceResult.sideHit;
 
             // Calculate the positions that would be filled
-//            List<BlockPos> positions = wandItem.calculateBuildArea(world, targetPos, targetFace, MAX_BLOCKS);
-            List<BlockPos> positions = wandItem.calculateBuildArea(world, lookingAt, face, MAX_BLOCKS);
+            List<BlockPos> positions = wandItem.calculateBuildArea(world, targetPos, targetFace, MAX_BLOCKS);
+//            List<BlockPos> positions = wandItem.calculateBuildArea(world, lookingAt, face, MAX_BLOCKS);
             if (positions.isEmpty()) {
                 return;
             }

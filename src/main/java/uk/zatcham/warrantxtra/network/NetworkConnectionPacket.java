@@ -4,7 +4,7 @@ import appeng.core.sync.AppEngPacket;
 import appeng.core.sync.network.INetworkInfo;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
-import uk.zatcham.warrantxtra.ItemMEBuildersWand;
+import uk.zatcham.warrantxtra.items.ItemMEBuildersWand;
 
 public class NetworkConnectionPacket extends AppEngPacket {
     private boolean hasConnection;

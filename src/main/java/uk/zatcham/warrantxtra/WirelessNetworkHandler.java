@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import uk.zatcham.warrantxtra.items.ItemMEBuildersWand;
 
 public class WirelessNetworkHandler {
     private static final int NETWORK_CHECK_INTERVAL = 20; // ticks
