@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CCC",
+    "SSS",
+    "   "
+  ],
+  "key": {
+    "C": {
+      "item": "appliedenergistics2:fluix_block"
+    },
+    "S": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "item": "warrantxtra:mebuilderswand"
+  }
+}

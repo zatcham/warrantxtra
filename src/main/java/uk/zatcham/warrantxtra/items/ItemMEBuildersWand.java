@@ -30,9 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.*;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.*;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -123,9 +121,6 @@ public class ItemMEBuildersWand extends Item {
             return;
         }
 
-        // Debug log to verify the event is firing
-        WarrantXtra.logger.info("Builder's Wand render tick: looking at " + rayTrace.getBlockPos());
-
         // Update the render handler
         if (renderHandler != null) {
             renderHandler.updateRenderData(
@@ -134,6 +129,12 @@ public class ItemMEBuildersWand extends Item {
                     rayTrace.sideHit,
                     wand
             );
+            // Request availability update from server
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastRequestTime > 500) { // Limit requests to every 500ms
+                lastRequestTime = currentTime;
+                Network.sendToServer(new BuilderWandPacket(rayTrace.getBlockPos()));
+            }
         }
     }
 
@@ -282,7 +283,7 @@ public class ItemMEBuildersWand extends Item {
         }
     }
 
-    private List<BlockPos> calculateBuildArea(World world, BlockPos start, EnumFacing facing) {
+    public List<BlockPos> calculateBuildArea(World world, BlockPos start, EnumFacing facing) {
         List<BlockPos> positions = new ArrayList<>();
         BlockPos originPos = start.offset(facing);
 
@@ -327,7 +328,7 @@ public class ItemMEBuildersWand extends Item {
         return positions;
     }
 
-    private boolean canPlaceBlock(World world, BlockPos pos) {
+    public boolean canPlaceBlock(World world, BlockPos pos) {
         return world.getBlockState(pos).getBlock().isReplaceable(world, pos);
     }
 
@@ -611,7 +612,7 @@ public class ItemMEBuildersWand extends Item {
     }
 
     // Improved getNetworkFromStack with better client-side handling
-    private IGrid getNetworkFromStack(World world, EntityPlayer player, ItemStack stack) {
+    public IGrid getNetworkFromStack(World world, EntityPlayer player, ItemStack stack) {
         if (!isLinked(stack)) {
             return null;
         }
@@ -1043,21 +1044,9 @@ public class ItemMEBuildersWand extends Item {
                 return; // Skip if the wand is not linked
             }
 
+
             // Render
             renderOutlines(player, event.getPartialTicks(), positions, isLinked);
-        }
-
-        private void checkBlockAvailability(List<BlockPos> positions, Block sourceBlock) {
-            // This is a client-side approximation - would need server sync for accuracy
-            // but that would create too much network traffic
-            // For now, we'll use the cache and assume blocks are available
-
-            for (BlockPos pos : positions) {
-                if (!availabilityCache.containsKey(pos)) {
-                    // Default to true for responsive UI - server will validate on placement
-                    availabilityCache.put(pos, true);
-                }
-            }
         }
 
         private void renderOutlines(EntityPlayer player, float partialTicks, List<BlockPos> positions, boolean isLinked) {
@@ -1114,10 +1103,45 @@ public class ItemMEBuildersWand extends Item {
     }
 
     @SideOnly(Side.CLIENT)
+    private void requestAvailabilityUpdate(BlockPos targetPos) {
+        // Check if it's time to send a new request
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastRequestTime > 500) { // Limit requests to every 500ms
+            lastRequestTime = currentTime;
+            WarrantXtra.logger.info("Requesting block availability update for " + targetPos);
+            Network.sendToServer(new BuilderWandPacket(targetPos));
+        }
+    }
+
+    // Add this field to your class:
+    @SideOnly(Side.CLIENT)
+    private static long lastRequestTime = 0;
+
+    @SideOnly(Side.CLIENT)
     public static void initClient() {
-        WarrantXtra.logger.info("Initializing Builder's Wand client-side");
+        WarrantXtra.logger.info("Initialising Builder's Wand client-side");
         renderHandler = new RenderHandler();
 //        MinecraftForge.EVENT_BUS.register(renderHandler);
         MinecraftForge.EVENT_BUS.register(ItemMEBuildersWand.class);
+    }
+
+    public RayTraceResult rayTrace(World world, EntityPlayer player, boolean useLiquids) {
+        float pitch = player.rotationPitch;
+        float yaw = player.rotationYaw;
+        double x = player.posX;
+        double y = player.posY + player.getEyeHeight();
+        double z = player.posZ;
+
+        Vec3d vec3d = new Vec3d(x, y, z);
+        float f2 = -MathHelper.cos(-pitch * 0.017453292F);
+        float f3 = MathHelper.sin(-pitch * 0.017453292F);
+        float f4 = -MathHelper.sin(-yaw * 0.017453292F);
+        float f5 = MathHelper.cos(-yaw * 0.017453292F);
+        float f6 = f3 * f4;
+        float f7 = f2 * f4;
+        double d3 = 5.0D;
+        Vec3d vec3d1 = vec3d.addVector((double)f6 * d3, (double)f3 * d3, (double)f7 * d3);
+
+        return world.rayTraceBlocks(vec3d, vec3d1, useLiquids, !useLiquids, false);
     }
 }
