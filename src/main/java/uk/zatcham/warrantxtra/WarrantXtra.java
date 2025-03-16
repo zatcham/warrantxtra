@@ -22,13 +22,16 @@ import java.util.Objects;
 
 // WarrantXtra.java
 @Mod(modid = WarrantXtra.MODID, name = WarrantXtra.NAME, version = WarrantXtra.VERSION)
-@Mod.EventBusSubscriber
+//@Mod.EventBusSubscriber
 public class WarrantXtra {
     public static final String MODID = "warrantxtra";
     public static final String NAME = "Zach's Warrant Xtras";
     public static final String VERSION = "1.0";
 
     public static Logger logger;
+
+    // Then create the item
+    public static final ItemMEBuildersWand ME_BUILDERS_WAND = new ItemMEBuildersWand();
 
     // Create the creative tab first
     public static final CreativeTabs WARRANT_XTRA_TAB = new CreativeTabs("warrantxtra") {
@@ -39,12 +42,10 @@ public class WarrantXtra {
         }
     };
 
-    // Then create the item
-    public static final ItemMEBuildersWand ME_BUILDERS_WAND = new ItemMEBuildersWand();
-
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         logger = event.getModLog();
+        Network.init();
     }
 
     @EventHandler
@@ -54,23 +55,29 @@ public class WarrantXtra {
             WarrantXtra.logger.info("Initialising client-side components");
             ItemMEBuildersWand.initClient();
         }
-        Network.init();
         logger.info("WarrantXtra initialised!");
     }
 
-    @SubscribeEvent
-    public static void registerItems(RegistryEvent.Register<Item> event) {
-        event.getRegistry().register(ME_BUILDERS_WAND);
-        logger.info("Registered item: " + ME_BUILDERS_WAND.getRegistryName());
+    @Mod.EventBusSubscriber
+    public static class RegistrationHandler {
+        @SubscribeEvent
+        public static void registerItems(RegistryEvent.Register<Item> event) {
+            event.getRegistry().register(ME_BUILDERS_WAND);
+            logger.info("Registered item: " + ME_BUILDERS_WAND.getRegistryName());
+        }
     }
 
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public static void registerModels(ModelRegistryEvent event) {
-        ModelLoader.setCustomModelResourceLocation(
-                ME_BUILDERS_WAND,
-                0,
-                new ModelResourceLocation(Objects.requireNonNull(ME_BUILDERS_WAND.getRegistryName()), "inventory")
-        );
+    @Mod.EventBusSubscriber(Side.CLIENT)
+    public static class ClientRegistrationHandler {
+        @SubscribeEvent
+        public static void registerModels(ModelRegistryEvent event) {
+            ModelLoader.setCustomModelResourceLocation(
+                    ME_BUILDERS_WAND,
+                    0,
+                    new ModelResourceLocation(Objects.requireNonNull(ME_BUILDERS_WAND.getRegistryName()), "inventory")
+            );
+        }
     }
+
+
 }

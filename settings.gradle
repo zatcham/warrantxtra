@@ -1,2 +1,0 @@
-include ':appliedenergistics2'
-project(':appliedenergistics2').projectDir = new File('../lib/Applied-Energistics-2')  // Adjust path to match your setup

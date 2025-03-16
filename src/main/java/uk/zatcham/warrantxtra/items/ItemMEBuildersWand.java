@@ -1114,7 +1114,6 @@ public class ItemMEBuildersWand extends Item {
     }
 
     // Add this field to your class:
-    @SideOnly(Side.CLIENT)
     private static long lastRequestTime = 0;
 
     @SideOnly(Side.CLIENT)
